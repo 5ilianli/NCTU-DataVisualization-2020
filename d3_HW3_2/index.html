@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<style> 
+body { font: 15px Arial;}
+path { 
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+.legend {
+    font-size: 16px;
+    font-weight: bold;
+    text-anchor: middle;
+}
+    
+
+    
+
+div.tooltip {
+  position: absolute;
+  text-align: center;
+  width: 170px;
+  height: 65px;
+  padding: 2px;
+  font: 12px sans-serif;
+  background: aqua;
+  border: 0px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.text1{
+  font-size: 20px;
+  text-align: center;
+  text-decoration-color: aquamarine;
+  margin-bottom: auto;
+}
+
+</style>
+<body>
+<p class='text1'>利用D3js呈現各歷年縣市人口差資料</p>
+
+<!-- load the d3.js library -->    
+<script src="http://d3js.org/d3.v3.min.js" ></script>
+<div id="my_dataviz"></div>
+
+<script>
+
+// Set the dimensions of the canvas / graph
+var margin = {top: 20, right: 20, bottom: 130, left: 100},
+    width = 1700 - margin.left - margin.right,
+    height = 1000 - margin.top - margin.bottom;
+
+// Parse the date / time
+var parseDate = d3.time.format("%Y-%m-%d").parse;
+var formatTime = d3.time.format("%Y-%m-%d");
+    
+// Set the ranges
+var x = d3.time.scale().range([0, width]);
+var y = d3.scale.linear().range([height, 0]);
+    
+// Define the axes
+var xAxis = d3.svg.axis().scale(x)
+    .orient("bottom").ticks(15);
+var yAxis = d3.svg.axis().scale(y)
+    .orient("left").ticks(15);
+    
+// Define the line
+var priceline = d3.svg.line()	
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.pop); });
+    
+// Adds the svg canvas
+var svg = d3.select("body")
+    .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var div = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
+// Get the data
+d3.csv("https://raw.githubusercontent.com/5ilianli/d3.js_HW3/master/city.csv", 
+       
+    function(error, data) {
+    data.forEach(function(d) {
+        d.date = parseDate(d.Date);
+		d.pop = +d.人口差;
+    });
+    
+    // Scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.date; }));
+    y.domain([d3.min(data, function(d) { return d.pop-1000; }), d3.max(data, function(d) { return d.pop+1000; })]);
+    
+    // Nest the entries by symbol
+    var dataNest = d3.nest()
+        .key(function(d) {return d.縣市;})
+        .entries(data);
+    
+    //var color = d3.scale.category10(); 
+    
+    var color = d3.scale.ordinal() // set the colour scale
+                  .domain(data)
+                  .range(["#faff16", "#d50527", "#158940", "#f898fd", "#24c9d7", "#cb9b64", "#866888", "#22e67a", "#e509ae", "#9dabfa", "#437e8a", "#b21bff", "#ff7b91", "#94aa05", "#ac5906", "#82a68d", "#fe6616", "#7a7352", "#f9bc0f", "#b65d66", "#07a2e6", "#c091ae", "#8a91a7", "#88fc07", "#ea42fe", "#9e8010", "#10b437", "#c281fe", "#f92b75", "#07c99d", "#a946aa", "#bfd544", "#16977e", "#ff6ac8", "#a88178", "#5776a9", "#678007", "#fa9316", "#85c070", "#6aa2a9", "#989e5d", "#fe9169", "#cd714a", "#6ed014", "#c5639c", "#c23271", "#698ffc", "#678275", "#c5a121", "#a978ba", "#ee534e", "#d24506", "#59c3fa", "#ca7b0a", "#6f7385", "#9a634a", "#48aa6f", "#ad9ad0", "#d7908c", "#6a8a53", "#8c46fc", "#8f5ab8", "#fd1105", "#7ea7cf", "#d77cd1", "#a9804b", "#0688b4", "#6a9f3e", "#ee8fba", "#a67389", "#9e8cfe", "#bd443c", "#6d63ff", "#d110d5", "#798cc3", "#df5f83", "#b1b853", "#bb59d8", "#1d960c", "#867ba8", "#18acc9", "#25b3a7", "#f3db1d", "#938c6d", "#936a24", "#a964fb", "#92e460", "#a05787", "#9c87a0", "#20c773", "#8b696d", "#78762d", "#e154c6", "#40835f", "#d73656", "#1afd5c", "#c4f546", "#3d88d8", "#bd3896", "#1397a3", "#f940a5", "#66aeff", "#d097e7", "#fe6ef9", "#d86507", "#8b900a", "#d47270", "#e8ac48", "#cf7c97", "#cebb11", "#718a90", "#e78139", "#ff7463", "#bea1fd"]);  
+    
+    legendSpace = width/dataNest.length; // spacing for legend
+    // Loop through each symbol / key
+    dataNest.forEach(function(d,i) { 
+            svg.append("path")
+            .attr("class", "line")
+            .style("stroke", function() { 
+                // Add the colours dynamically
+                return d.color = color(d.key); })
+            .attr("d", priceline(d.values));
+            //console.log(d.values);
+        
+           var legend = svg.selectAll('g')
+                           .data(dataNest)
+                           .enter()
+                           .append('g')
+                           .attr('class', 'legend');
+
+           legend.append('rect')
+                 .attr('x', width - 83)
+                 .attr('y', function(d, i) {return i * 20;})
+                 .attr('width', 10)
+                 .attr('height', 10)
+                 .style('fill', function(d) {return color(d.key);});
+
+           legend.append('text')
+                 .attr('x', width - 30)
+                 .attr('y', function(d, i) {return (i * 20) + 9;})
+                 .text(function(d) {return d.key;});
+          // add the dots with tooltips
+    
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - 86)
+        .attr("x", 0 - (height / 2)*0.7)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("人口差")
+        .attr("class", "y axis");
+    svg.append("text")
+        .attr("transform", "rotate(0)")
+        .attr("x",(width / 2-50))
+        .attr("y", height*1.07 )
+        .attr("dx", "1em")
+        .style("text-anchor", "middle")
+        .text("時間")
+        .attr("class", "x axis");
+    svg.selectAll("dot")
+     .data(data)
+     .enter()
+     .append("circle")
+     .attr("r", 1)
+     .attr("cx", function(d) { return x(d.date); })
+     .attr("cy", function(d) { return y(d.人口差); })
+     .on("mouseover", function(d,i) {
+       div.transition()
+         .duration(200)
+         .style("opacity", .9);
+       div.html("縣市：" + d.縣市 + "<br/>時間：" + formatTime(d.date) + "<br/>人口差：" + d.人口差 )
+         .style("left", (d3.event.pageX) + "px")
+         .style("top", (d3.event.pageY - 28) + "px");
+       })
+     .on("mouseout", function(d) {
+       div.transition()
+         .duration(500)
+         .style("opacity", 0);
+       });
+    });
+    
+    // Add the X Axis
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+    // Add the Y Axis
+    svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis);
+ 
+});
+</script>
+</body>
+</html>
